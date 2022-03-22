@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+ 
+{% block content %} 
+<div class="jumbotron text-center">
+  <h1 class="display-3">Thank You!</h1>
+  <p class="lead">You know your friend <b>{{applicant}}</b> very well, you answered <b>{{percentage}} %</b> of all questions like them.</p>
+  <hr>
+  <p class="lead">
+    <a class="btn btn-primary btn-sm" href="{% url 'quiz:home' %}" role="button" target="_blank">Create your Own Test</a>
+  </p>
+</div>
+{% endblock %}

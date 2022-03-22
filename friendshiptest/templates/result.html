@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+ 
+{% block content %} 
+<div class="jumbotron text-center">
+  <h1 class="display-3">Thank You!</h1>
+  <p class="lead"><strong>You have successfully completed the test.</strong> You can share the test link with your fiend.</p>
+  <hr>
+  <p class="lead">
+    <a class="btn btn-primary btn-sm" href="{% url 'quiz:share-quiz' id %}" role="button" target="_blank">Share link</a>
+  </p>
+</div>
+{% endblock %}
