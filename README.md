@@ -1,6 +1,6 @@
 # testtask
 
-create virtual environment using commanda and activate env:
+create virtual environment using commands and activate env:
 
 ```sh
 $ python3 -m venv /path/to/new/virtual/environment
