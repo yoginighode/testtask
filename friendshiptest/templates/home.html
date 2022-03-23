@@ -4,10 +4,10 @@
 <form action="." method="post">
     {% csrf_token %}
 <div class="question ml-sm-5 pl-sm-5 pt-2">
-    <input type="hidden" name="ids_list" value="{{ids_list}}">
+    <!-- <input type="hidden" name="ids_list" value="{{ids_list}}"> -->
     {% for ques in object_list %}
     <div class="py-2 h5"><b>{{forloop.counter}}. &nbsp; {{ques.text}}</b></div>
-        {% if ques.que_choice.name == "T1" %} 
+        {% if ques.question_type.name == "select" %} 
         <div class="ml-md-3 ml-sm-3 pl-md-5 pt-sm-0 pt-3" id="options-{{ques.id}}">
             <ul class="list-group">
                 {% for choice in ques.question_choice_set.all %}
