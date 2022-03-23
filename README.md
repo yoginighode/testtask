@@ -38,4 +38,4 @@ If you want to create superuser:
 ```
 Open `http://127.0.0.1:8000/admin/`
 
-Enter superuser credebtials.You can access admin site of django.
+Enter superuser credentials.You can access admin site of django.
