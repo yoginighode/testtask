@@ -10,10 +10,10 @@ from django.conf import settings
 
 from .models import Question, UserAnswer, TestPaper, Choice
 
-
 class QuestionListView(View):
 
     def get(self, request, *args, **kwargs):
+        """Get the list of random questions."""
         ids_list = Question.objects.all().values_list('id', flat=True)
         try:
             random_ids_list = random.sample(list(ids_list), settings.TOTAL_TEST_QUESTION)
@@ -23,6 +23,7 @@ class QuestionListView(View):
         return render(request, 'home.html', {'object_list': object_list})
 
     def post(self, request, *args, **kwargs):
+        """Save the questions answer."""
         user_obj, created = User.objects.get_or_create(
             username=request.POST.get("username"))
         test_paper_obj = TestPaper.objects.create(user=user_obj,submitted_on=datetime.datetime.now())
@@ -45,38 +46,82 @@ class QuestionListView(View):
 class ShareQuizView(View):
 
     def get(self, request, *args, **kwargs):
-        tp_obj = TestPaper.objects.get(id=kwargs.get("id"))
-        question_ids = tp_obj.useranswer_set.all().values_list("question", flat=True).distinct()
-        object_list = Question.objects.filter(id__in=question_ids)
+        """Get the list of questions of test paper."""
+        object_list = self.get_questions_objs(kwargs.get("id"))
         return render(request, 'quiz.html', {'object_list': object_list,},)
 
+    def get_questions_objs(self, test_paper_id):
+        """
+            Args:
+              test_paper_id(int): Test paper id
+
+            Return:
+              It will return queryset of Questions
+
+        """
+        return Question.objects.filter(user_answered_ques__test_paper_id=test_paper_id).select_related("question_type").distinct()
+
+
+    def get_user_ans(self, tp_obj, que_obj):
+        """
+            Args:
+              test_paper_id(obj): Test paper Object
+              question_id(obj): Question Object
+
+            Return:
+              It will return list of answers of question
+
+        """
+        user_answers = tp_obj.useranswer_set.filter(question=que_obj).values_list("answer__text", flat=True)
+        return user_answers
+
+
+    def is_matched(self, user_ans, friend_ans):
+        """
+            Args:
+              user_ans(list): User Answer List
+              user_ans(str): friend_ans
+
+            Return:
+              It will return match_count 1 or 0
+
+        """
+        if friend_ans == user_ans[0]:
+            return 1
+        return 0
+
+    def is_matched_multi(self, user_ans, friend_ans):
+        """
+            Args:
+              user_ans(list): User Answer List
+              user_ans(str): friend_ans
+
+            Return:
+              It will return match_count 1 or 0
+
+        """
+        is_correct_ls = []
+        for given_ans in friend_ans:
+            if given_ans in user_ans:
+                is_correct_ls.append(1)
+            else:
+                is_correct_ls.append(0)
+        if all(is_correct_ls) and len(user_ans) == len(friend_ans):
+            return 1
+        return 0
+
     def post(self, request, *args, **kwargs):
-        tp_obj = TestPaper.objects.get(id=kwargs.get("id"))
-        applicat1_ans = tp_obj.useranswer_set.all().values_list("question", flat=True)
-        applicat2_ans = [int(k.split("-")[1]) for k in request.POST.keys() if k.find('options-')==0]
-        a_set = set(applicat1_ans)
-        b_set = set(applicat2_ans)
-        cnt = 0
-        for q_id in (a_set & b_set):
-            try:
-                que_obj = Question.objects.get(id=q_id)
-                user_answers = tp_obj.useranswer_set.filter(question=que_obj).values_list("answer__text", flat=True)
-                if que_obj.question_type.name == "select":
-                    given_ans = request.POST.get('options-'+ str(q_id))
-                    if given_ans == user_answers[0]:
-                        cnt += 1
-                elif que_obj.question_type.name == "multiselect":
-                    given_ans_values = request.POST.getlist('options-'+ str(q_id))
-                    is_correct_ls = []
-                    for given_ans in given_ans_values:
-                        if given_ans in user_answers:
-                            is_correct_ls.append(1)
-                        else:
-                            is_correct_ls.append(0)
-                    if all(is_correct_ls) and len(given_ans_values) == len(user_answers):
-                        cnt += 1
-            except Question.DoesNotExist:
-                pass
-        percentage = (cnt*100/len(set(applicat1_ans)))
-        ctx = {'applicant': tp_obj.user.username, "percentage": ("%.2f" % percentage)}
+        """Method to match the answers with firend answers."""
+        match_count = 0
+        test_paper = TestPaper.objects.get(id=kwargs.get("id"))
+        questions = self.get_questions_objs(test_paper.id)
+        for que_obj in questions:
+            if que_obj.question_type.name == "select":
+                match_count += self.is_matched(self.get_user_ans(test_paper, que_obj), request.POST.get('options-'+ str(que_obj.id)))
+
+            elif que_obj.question_type.name == "multiselect":
+                match_count += self.is_matched_multi(self.get_user_ans(test_paper, que_obj), request.POST.getlist('options-'+ str(que_obj.id)))
+
+        percentage = (match_count*100/settings.TOTAL_TEST_QUESTION)
+        ctx = {'applicant': test_paper.user.username, "percentage": ("%.2f" % percentage)}
         return render(request, 'success.html', ctx)
